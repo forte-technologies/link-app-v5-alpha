@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+        textarea {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 100px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #summary {
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+        }
+        #summary h2 {
+            margin-top: 0;
+        }
+        #summary ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #summary li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>URL Checker</h1>
+        <form id="urlForm">
+            <label for="urls">Enter URLs (one per line):</label>
+            <textarea id="urls" name="urls" rows="10" required></textarea>
+            <button type="submit">Check Links</button>
+        </form>
+        <div id="summary">
+            <h2>Summary</h2>
+            <ul>
+                <li>Total links analyzed: <span id="totalLinks"></span></li>
+                <li>Total invalid links: <span id="invalidLinks"></span></li>
+                <li>Total links without minimum content: <span id="noContentLinks"></span></li>
+                <li>Total links with 403 Forbidden error: <span id="forbiddenLinks"></span></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('urlForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('{{ url_for('check_links') }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                displaySummary(data.summary);
+                // Trigger CSV download
+                const blob = new Blob([data.csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'links_analysis.csv';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        function displaySummary(summary) {
+            document.getElementById('totalLinks').textContent = summary['Total Links Analyzed'];
+            document.getElementById('invalidLinks').textContent = summary['Total Invalid Links'];
+            document.getElementById('noContentLinks').textContent = summary['Total Links Without Minimum Content'];
+            document.getElementById('forbiddenLinks').textContent = summary['Total 403 Forbidden Errors'];
+            document.getElementById('summary').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
